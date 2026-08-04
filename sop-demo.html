@@ -7,102 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg:#f7f5ef; --bg-grid:#dde6ef; --bg-panel:#ffffff; --bg-panel-raised:#f0f4f8;
-    --line:#cdd7e1; --ink:#1e2a3a; --ink-dim:#63758a;
-    --amber:#c2760a; --teal:#0f8a7d; --coral:#c62f2f;
-    --font-display:'Space Grotesk', sans-serif; --font-mono:'IBM Plex Mono', monospace;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{
-    background:
-      linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0/40px 40px,
-      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px) 0 0/40px 40px,
-      var(--bg);
-    color:var(--ink); font-family:var(--font-mono); min-height:100vh; padding:28px 20px 60px;
-  }
-  .wrap{max-width:1220px;margin:0 auto;}
-  header{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid var(--ink);padding-bottom:16px;margin-bottom:22px;flex-wrap:wrap;gap:14px;}
-  h1{font-family:var(--font-display);font-weight:700;font-size:25px;letter-spacing:0.5px;margin:0 0 4px;color:var(--ink);}
-  .subtitle{color:var(--ink-dim);font-size:12px;letter-spacing:0.3px;}
-  .titleblock{border:1px solid var(--ink);background:#fff;padding:8px 14px;font-size:10.5px;color:var(--ink-dim);display:grid;grid-template-columns:auto auto;gap:2px 14px;text-align:right;}
-  .titleblock b{color:var(--amber);font-weight:600;}
-
-  .pipeline{display:flex;align-items:center;margin:26px 0 24px;overflow-x:auto;padding-bottom:6px;}
-  .station{flex:1;min-width:104px;text-align:center;cursor:pointer;position:relative;padding:12px 5px;border:1px solid var(--line);background:var(--bg-panel);transition:all .15s ease;}
-  .station:hover{border-color:var(--teal);}
-  .station.active{border-color:var(--amber);background:#fff7ea;}
-  .station .num{font-family:var(--font-display);font-size:10px;color:var(--ink-dim);letter-spacing:1px;}
-  .station.active .num{color:var(--amber);}
-  .station .label{font-size:12px;margin-top:4px;font-weight:600;color:var(--ink);}
-  .station .sub{font-size:9px;color:var(--ink-dim);margin-top:2px;}
-  .pipe{width:22px;height:2px;background:repeating-linear-gradient(90deg,var(--line) 0 6px,transparent 6px 12px);flex-shrink:0;}
-
-  .panel{display:none;border:1px solid var(--line);background:var(--bg-panel);padding:22px;box-shadow:0 1px 3px rgba(30,42,58,0.06);}
-  .panel.show{display:block;}
-  .panel h2{font-family:var(--font-display);font-size:17px;margin:0 0 4px;color:var(--ink);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  .panel h2 .tag{font-size:10px;background:var(--bg-panel-raised);border:1px solid var(--line);padding:2px 7px;color:var(--ink-dim);letter-spacing:0.5px;font-weight:400;}
-  .panel .desc{color:var(--ink-dim);font-size:12px;margin-bottom:16px;line-height:1.6;}
-  .panel .note{color:var(--amber);font-size:11.5px;margin-bottom:14px;line-height:1.6;background:#fff7ea;border:1px solid #f0d9a8;padding:9px 12px;}
-
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
-  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
-  @media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr;}}
-
-  fieldset{border:1px solid var(--line);padding:14px;margin:0 0 16px;}
-  legend{font-size:11px;color:var(--amber);letter-spacing:0.5px;padding:0 6px;font-family:var(--font-display);}
-  .field{margin-bottom:10px;}
-  .field label{display:block;font-size:10.5px;color:var(--ink-dim);margin-bottom:4px;}
-  .field input{width:100%;background:#fff;border:1px solid var(--line);color:var(--ink);padding:7px 9px;font-family:var(--font-mono);font-size:12.5px;}
-  .field input:focus{outline:none;border-color:var(--teal);}
-  .row-inline{display:flex;gap:8px;flex-wrap:wrap;}
-  .row-inline .field{flex:1;min-width:110px;}
-
-  table{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;}
-  th,td{border:1px solid var(--line);padding:6px 7px;text-align:right;}
-  th{background:var(--bg-panel-raised);color:var(--ink-dim);font-weight:500;font-size:10.5px;}
-  td:first-child,th:first-child{text-align:left;color:var(--ink-dim);}
-  .badge{display:inline-block;padding:1px 6px;font-size:9.5px;border:1px solid currentColor;margin-left:3px;}
-
-  .btnrow{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
-  button{font-family:var(--font-display);font-weight:600;font-size:12.5px;letter-spacing:0.3px;background:var(--amber);color:#fff;border:none;padding:10px 18px;cursor:pointer;}
-  button:hover{background:#a3630a;}
-  button.secondary{background:transparent;color:var(--ink);border:1px solid var(--line);}
-  button.secondary:hover{border-color:var(--teal);color:var(--teal);}
-
-  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0;}
-  @media(max-width:760px){.kpi-row{grid-template-columns:repeat(2,1fr);}}
-  .kpi{border:1px solid var(--line);background:var(--bg-panel-raised);padding:14px;}
-  .kpi .v{font-family:var(--font-display);font-size:21px;color:var(--amber);}
-  .kpi .l{font-size:10px;color:var(--ink-dim);margin-top:2px;}
-  .kpi.risk{border-color:var(--coral);} .kpi.risk .v{color:var(--coral);}
-  .kpi.good{border-color:var(--teal);} .kpi.good .v{color:var(--teal);}
-
-  .barchart{display:flex;align-items:flex-end;gap:10px;height:130px;margin:14px 0 6px;border-bottom:1px solid var(--ink);}
-  .bargrp{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:2px;}
-  .bar{width:60%;background:var(--teal);position:relative;min-height:2px;}
-  .barlabel{font-size:9.5px;color:var(--ink-dim);margin-top:6px;}
-  .legend-row{display:flex;gap:16px;font-size:10px;color:var(--ink-dim);margin-bottom:4px;}
-  .legend-row span{display:flex;align-items:center;gap:5px;}
-  .swatch{width:10px;height:10px;display:inline-block;}
-
-  .report-block{border:1px solid var(--line);padding:16px;margin-bottom:14px;background:var(--bg-panel-raised);}
-  .report-block h3{font-family:var(--font-display);font-size:13px;margin:0 0 10px;color:var(--amber);}
-  .comment{font-size:12px;line-height:1.8;color:var(--ink);}
-  .stamp{display:inline-block;border:2px solid var(--coral);color:var(--coral);padding:4px 10px;font-family:var(--font-display);font-size:10.5px;letter-spacing:1px;transform:rotate(-3deg);margin-left:8px;background:#fff;}
-  .stamp.safe{border-color:var(--teal);color:var(--teal);}
-
-  .routing{display:flex;align-items:stretch;gap:0;margin:6px 0 20px;overflow-x:auto;}
-  .rnode{border:1px solid var(--line);background:var(--bg-panel-raised);padding:10px 14px;min-width:150px;flex-shrink:0;}
-  .rnode .rtitle{font-size:9.5px;color:var(--amber);letter-spacing:0.5px;font-family:var(--font-display);margin-bottom:4px;}
-  .rnode .rmain{font-size:12.5px;color:var(--ink);font-weight:600;}
-  .rnode .rsub{font-size:10px;color:var(--ink-dim);margin-top:3px;line-height:1.5;}
-  .rarrow{display:flex;align-items:center;justify-content:center;min-width:30px;color:var(--ink-dim);font-size:16px;flex-shrink:0;}
-
-  footer{margin-top:30px;text-align:center;color:var(--ink-dim);font-size:10px;letter-spacing:0.5px;}
-</style>
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <div class="wrap">
@@ -110,7 +15,7 @@
   <header>
     <div>
       <h1>S&amp;OP PLANNING BLUEPRINT</h1>
-      <div class="subtitle">수요예측 → 수요계획 → 공급계획 → 생산계획 → 자재소요계획(MRP, 리드타임 오프셋 반영) → S&amp;OP 보고서 자동생성</div>
+      <div class="subtitle">수요예측 → 수요계획 → 공급계획 → 생산계획 → 자재소요계획(MRP) → 물류계획(거점 2개소, 운송Capa 반영) → S&amp;OP 보고서 자동생성</div>
     </div>
     <div class="titleblock">
       <div>SCOPE</div><div><b>고객1 × 완제품1</b></div>
@@ -130,18 +35,17 @@
       <fieldset>
         <legend>고객</legend>
         <div class="field"><label>고객명</label><input id="m-cust" value="A유통"></div>
-        <div class="row-inline">
-          <div class="field"><label>주문 리드타임(일)</label><input type="number" id="m-custlt" value="3"></div>
-          <div class="field"><label>물류 리드타임(일)</label><input type="number" id="m-logilt" value="5"></div>
-        </div>
       </fieldset>
 
       <fieldset>
         <legend>완제품(FG)</legend>
         <div class="field"><label>완제품명</label><input id="m-fg" value="완제품1"></div>
         <div class="row-inline">
-          <div class="field"><label>초기재고(EA)</label><input type="number" id="m-fgstock0" value="200"></div>
+          <div class="field"><label>초기재고(EA)</label><input type="number" id="m-fgstock0" value="400"></div>
           <div class="field"><label>안전재고(EA)</label><input type="number" id="m-fgsafety" value="150"></div>
+        </div>
+        <div class="row-inline">
+          <div class="field"><label>재공품(EA, 이미 착수되어 곧 입고될 물량)</label><input type="number" id="m-fgwip" value="400"></div>
         </div>
         <div class="row-inline">
           <div class="field"><label>로트사이즈(EA)</label><input type="number" id="m-fglot" value="100"></div>
@@ -162,7 +66,38 @@
         </div>
         <div class="row-inline">
           <div class="field"><label>로트사이즈(EA)</label><input type="number" id="m-sfglot" value="120"></div>
+          <div class="field"><label>수율(%)</label><input type="number" id="m-sfgyield" value="98"></div>
+        </div>
+        <div class="row-inline">
           <div class="field"><label>표준원가(원/EA)</label><input type="number" id="m-sfgcost" value="4200"></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>물류센터 1(거점)</legend>
+        <div class="field"><label>거점명</label><input id="m-dc1name" value="수도권 물류센터"></div>
+        <div class="row-inline">
+          <div class="field"><label>수요배분비율(%)</label><input type="number" id="m-dc1ratio" value="60"></div>
+          <div class="field"><label>이동 Capa(EA/주)</label><input type="number" id="m-dc1capa" value="220"></div>
+        </div>
+        <div class="row-inline">
+          <div class="field"><label>초기재고(EA)</label><input type="number" id="m-dc1stock0" value="120"></div>
+          <div class="field"><label>안전재고(EA)</label><input type="number" id="m-dc1safety" value="80"></div>
+        </div>
+        <div class="field"><label>이동 리드타임(일, 공장→거점)</label><input type="number" id="m-dc1lt" value="2"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>물류센터 2(거점)</legend>
+        <div class="field"><label>거점명</label><input id="m-dc2name" value="영남권 물류센터"></div>
+        <div class="desc" style="margin:0 0 10px;">수요배분비율 = 거점1의 나머지(100%-거점1비율)</div>
+        <div class="row-inline">
+          <div class="field"><label>이동 Capa(EA/주)</label><input type="number" id="m-dc2capa" value="180"></div>
+          <div class="field"><label>이동 리드타임(일, 공장→거점)</label><input type="number" id="m-dc2lt" value="4"></div>
+        </div>
+        <div class="row-inline">
+          <div class="field"><label>초기재고(EA)</label><input type="number" id="m-dc2stock0" value="80"></div>
+          <div class="field"><label>안전재고(EA)</label><input type="number" id="m-dc2safety" value="60"></div>
         </div>
       </fieldset>
 
@@ -263,8 +198,17 @@
     <table id="tbl-mrp"></table>
   </div>
 
-  <!-- STEP 5: S&OP 보고서 -->
+  <!-- STEP 5: 물류·출하계획 -->
   <div class="panel" id="panel-5">
+    <h2>물류·출하계획 <span class="tag">LOGISTICS — 물류센터 2개소</span></h2>
+    <div class="routing" id="routing-dc"></div>
+    <div class="note" id="lt-note-dc"></div>
+    <div class="desc">고객 수요를 거점별 배분비율로 나눠 각 거점의 순소요량(NR)을 구하고, 거점 재고·안전재고를 감안한 거점입고량을 계산합니다. 이 입고량을 이동 리드타임만큼 앞당긴 것이 "공장 출하지시(계획착수)"이며, 이 값의 합이 완제품 생산계획의 총소요량(GR)이 됩니다. 이동 Capa(트럭 적재 기준)를 초과하면 CAPA초과로 표시됩니다.</div>
+    <table id="tbl-logistics"></table>
+  </div>
+
+  <!-- STEP 6: S&OP 보고서 -->
+  <div class="panel" id="panel-6">
     <h2>S&amp;OP 보고서 <span class="tag">AUTO-GENERATED</span></h2>
     <div class="desc" id="sop-scope"></div>
 
@@ -304,339 +248,10 @@
     </div>
   </div>
 
-  <footer>SCM S&amp;OP AUTOMATION PROTOTYPE — 고객1 × 완제품1, 2단계 BOM(원자재→반제품→완제품), 리드타임 오프셋 반영 SCOPE DEMO</footer>
+  <footer>SCM S&amp;OP AUTOMATION PROTOTYPE — 고객1 × 완제품1, 2단계 BOM(원자재→반제품→완제품), 물류거점 2개소, 리드타임 오프셋 반영 SCOPE DEMO</footer>
 </div>
 
-<script>
-const WEEKS = 6;
-const stationDefs = [
-  {label:'기준정보', sub:'MASTER DATA'},
-  {label:'수요계획', sub:'DEMAND PLAN'},
-  {label:'공급계획', sub:'SUPPLY PLAN'},
-  {label:'생산계획', sub:'PRODUCTION'},
-  {label:'자재소요계획', sub:'MRP'},
-  {label:'S&OP 보고서', sub:'REPORT'},
-];
-
-function buildPipeline(){
-  const pipe = document.getElementById('pipeline');
-  pipe.innerHTML = '';
-  stationDefs.forEach((s,i)=>{
-    const st = document.createElement('div');
-    st.className = 'station' + (i===0?' active':'');
-    st.id = 'station-'+i;
-    st.innerHTML = `<div class="num">STEP ${String(i+1).padStart(2,'0')}</div><div class="label">${s.label}</div><div class="sub">${s.sub}</div>`;
-    st.onclick = ()=>showPanel(i);
-    pipe.appendChild(st);
-    if(i < stationDefs.length-1){
-      const p = document.createElement('div'); p.className = 'pipe'; pipe.appendChild(p);
-    }
-  });
-}
-
-function showPanel(i){
-  for(let j=0;j<stationDefs.length;j++){
-    document.getElementById('panel-'+j).classList.toggle('show', j===i);
-    document.getElementById('station-'+j).classList.toggle('active', j===i);
-  }
-}
-
-function buildForecastInputs(){
-  const box = document.getElementById('forecast-inputs');
-  const adjBox = document.getElementById('adj-inputs');
-  box.innerHTML=''; adjBox.innerHTML='';
-  const sample = [280,300,260,340,310,360];
-  for(let w=0; w<WEEKS; w++){
-    const f = document.createElement('div'); f.className='field';
-    f.innerHTML = `<label>W${w+1}</label><input type="number" id="fc-${w}" value="${sample[w]}">`;
-    box.appendChild(f);
-    const a = document.createElement('div'); a.className='field';
-    a.innerHTML = `<label>W${w+1}</label><input type="number" id="adj-${w}" value="100">`;
-    adjBox.appendChild(a);
-  }
-  document.getElementById('hrz-label').textContent = WEEKS + ' WEEKS';
-}
-
-function loadSample(){
-  buildForecastInputs();
-  const set=(id,v)=>{document.getElementById(id).value=v;};
-  set('m-cust','A유통'); set('m-custlt',3); set('m-logilt',5);
-  set('m-fg','완제품1'); set('m-fgstock0',200); set('m-fgsafety',150); set('m-fglot',100);
-  set('m-fgyield',96); set('m-fgcost',8500); set('m-fgprice',14000);
-  set('m-sfg','반제품A'); set('m-sfgstock0',150); set('m-sfgsafety',100); set('m-sfglot',120); set('m-sfgcost',4200);
-  set('m-rm','원자재A'); set('m-rmstock0',1200); set('m-rmlt',9); set('m-rmcost',1800);
-  set('m-bom-sfg',1); set('m-bom-rm',2);
-  set('m-factory','1공장');
-  set('m-fgline','완제품 조립라인'); set('m-fgequip','자동포장기 L1'); set('m-fgroute','조립 → 검사 → 포장');
-  set('m-fgcapa',420); set('m-fglt',4); set('m-fghours',40); set('m-fgtime',4.5);
-  set('m-sfgline','반제품 성형라인'); set('m-sfgequip','믹서/성형기 M1'); set('m-sfgroute','혼합 → 성형 → 건조');
-  set('m-sfgcapa',360); set('m-sfglt',3); set('m-sfghours',40); set('m-sfgtime',6);
-  runAll();
-}
-
-function num(id){ return parseFloat(document.getElementById(id).value) || 0; }
-function txt(id){ return document.getElementById(id).value; }
-function ltWeeks(days){ return Math.max(0, Math.ceil(days/7)); }
-
-// 표준 시계열 MRP 전개: GR -> NR -> 계획입고(PORcpt, need-week 기준) -> 계획착수(release, need-week - LT)
-function planItem({GR, safety, begin, lot, lt, capa, yieldRate}){
-  yieldRate = yieldRate || 1;
-  lot = lot || 1;
-  let poh = begin;
-  const NR=[], PORcpt=[], POH=[];
-  for(let w=0; w<WEEKS; w++){
-    const nr = Math.max(0, GR[w] + safety - poh);
-    NR.push(nr);
-    // 수율 손실 보정한 투입 필요량을 로트 단위로 올림
-    const inputNeeded = yieldRate<1 ? nr/yieldRate : nr;
-    const rcptInput = nr>0 ? Math.ceil(inputNeeded/lot)*lot : 0;
-    const rcptOutput = Math.round(rcptInput*yieldRate);
-    PORcpt.push({input:rcptInput, output:rcptOutput});
-    poh = poh + rcptOutput - GR[w];
-    POH.push(poh);
-  }
-  const release = new Array(WEEKS).fill(0);
-  const lateFlag = new Array(WEEKS).fill(false);
-  for(let w=0; w<WEEKS; w++){
-    if(PORcpt[w].input>0){
-      const rel = w - lt;
-      if(rel>=0){ release[rel]+=PORcpt[w].input; }
-      else { release[0]+=PORcpt[w].input; lateFlag[w]=true; }
-    }
-  }
-  const capaFlag = capa!=null ? release.map(v=>v>capa) : new Array(WEEKS).fill(false);
-  return {GR, NR, PORcpt, POH, release, lateFlag, capaFlag};
-}
-
-function runAll(){
-  const M = {
-    cust: txt('m-cust'), custLtDays:num('m-custlt'), logiLtDays:num('m-logilt'),
-    fg: txt('m-fg'), fgStock0:num('m-fgstock0'), fgSafety:num('m-fgsafety'), fgLot:num('m-fglot')||1,
-    fgYield:num('m-fgyield')/100, fgCost:num('m-fgcost'), fgPrice:num('m-fgprice'),
-    sfg: txt('m-sfg'), sfgStock0:num('m-sfgstock0'), sfgSafety:num('m-sfgsafety'), sfgLot:num('m-sfglot')||1, sfgCost:num('m-sfgcost'),
-    rm: txt('m-rm'), rmStock0:num('m-rmstock0'), rmCost:num('m-rmcost'), rmLtDays:num('m-rmlt'),
-    bomSfg:num('m-bom-sfg'), bomRm:num('m-bom-rm'),
-    factory:txt('m-factory'),
-    fgLine:txt('m-fgline'), fgEquip:txt('m-fgequip'), fgRoute:txt('m-fgroute'), fgCapa:num('m-fgcapa'), fgLtDays:num('m-fglt'), fgHours:num('m-fghours'), fgTime:num('m-fgtime'),
-    sfgLine:txt('m-sfgline'), sfgEquip:txt('m-sfgequip'), sfgRoute:txt('m-sfgroute'), sfgCapa:num('m-sfgcapa'), sfgLtDays:num('m-sfglt'), sfgHours:num('m-sfghours'), sfgTime:num('m-sfgtime'),
-  };
-
-  const forecast = [], adj = [];
-  for(let w=0; w<WEEKS; w++){ forecast.push(num('fc-'+w)); adj.push(num('adj-'+w)/100); }
-
-  // Step1: 수요계획
-  const demandPlan = forecast.map((f,i)=> Math.round(f * adj[i]));
-
-  // Step2: 공급계획 (ATP, 리드타임 미반영 - 즉시 가용 Capa/재고 기준)
-  let runStock = M.fgStock0;
-  const supplyPlan=[], supplyGap=[], invAfterSupply=[];
-  for(let w=0; w<WEEKS; w++){
-    const available = runStock + M.fgCapa;
-    const supply = Math.min(demandPlan[w], available);
-    supplyPlan.push(supply); supplyGap.push(demandPlan[w]-supply);
-    runStock = available - supply; invAfterSupply.push(runStock);
-  }
-
-  // ---- 리드타임(일→주) 오프셋 ----
-  const LT_FG = ltWeeks(M.fgLtDays), LT_SFG = ltWeeks(M.sfgLtDays), LT_RM = ltWeeks(M.rmLtDays), LT_LOGI = ltWeeks(M.logiLtDays);
-
-  // 완제품 GR: 고객 수요 시점을 물류 리드타임만큼 앞당겨 "완제품 창고출고 필요 시점"으로 환산
-  const grFG = new Array(WEEKS).fill(0);
-  const shipLateFlag = new Array(WEEKS).fill(false);
-  for(let w=0; w<WEEKS; w++){
-    const need = w - LT_LOGI;
-    if(need>=0) grFG[need]+=demandPlan[w]; else { grFG[0]+=demandPlan[w]; shipLateFlag[0]=true; }
-  }
-
-  // 완제품 MRP
-  const planFG = planItem({GR:grFG, safety:M.fgSafety, begin:M.fgStock0, lot:M.fgLot, lt:LT_FG, capa:M.fgCapa, yieldRate:M.fgYield});
-
-  // 반제품 GR = 완제품 계획착수(release) × BOM비율
-  const grSFG = planFG.release.map(v=>v*M.bomSfg);
-  const planSFG = planItem({GR:grSFG, safety:M.sfgSafety, begin:M.sfgStock0, lot:M.sfgLot, lt:LT_SFG, capa:M.sfgCapa});
-
-  // 원자재 GR = 반제품 계획착수(release) × BOM비율
-  const grRM = planSFG.release.map(v=>v*M.bomRm);
-  const planRM = planItem({GR:grRM, safety:0, begin:M.rmStock0, lot:1, lt:LT_RM, capa:null});
-
-  // 가동률(참고용, 착수 물량 기준)
-  const utilFG = planFG.release.map(v=> M.fgHours>0 ? Math.round(v*M.fgTime/60/M.fgHours*1000)/10 : 0);
-  const utilSFG = planSFG.release.map(v=> M.sfgHours>0 ? Math.round(v*M.sfgTime/60/M.sfgHours*1000)/10 : 0);
-
-  renderRouting(M, LT_FG, LT_SFG, LT_RM, LT_LOGI);
-  renderDemandPlan(forecast, adj, demandPlan);
-  renderSupplyPlan(demandPlan, supplyPlan, supplyGap, invAfterSupply, M);
-  renderProductionPlan(M, planFG, utilFG, LT_FG, shipLateFlag);
-  renderMRP(M, planSFG, planRM, utilSFG, LT_SFG, LT_RM);
-  renderReport(M, demandPlan, supplyPlan, planFG, planSFG, utilFG, utilSFG);
-}
-
-function weekHeaders(){
-  let h = '<tr><th>구분</th>';
-  for(let w=0;w<WEEKS;w++) h += `<th>W${w+1}</th>`;
-  return h + '</tr>';
-}
-
-function renderRouting(M, LT_FG, LT_SFG, LT_RM, LT_LOGI){
-  const mk = (title, name, sub) => `<div class="rnode"><div class="rtitle">${title}</div><div class="rmain">${name}</div><div class="rsub">${sub}</div></div>`;
-  const arrow = `<div class="rarrow">→</div>`;
-  document.getElementById('routing-sfg').innerHTML =
-    mk('공장', M.factory, '') + arrow +
-    mk('반제품 라인', M.sfgLine, '설비: '+M.sfgEquip) + arrow +
-    mk('공정순서', M.sfgRoute, 'Capa '+M.sfgCapa.toLocaleString()+'EA/주 · LT '+LT_SFG+'주') + arrow +
-    mk('산출', M.sfg, 'BOM: RM×'+M.bomRm+'/EA');
-
-  document.getElementById('routing-fg').innerHTML =
-    mk('공장', M.factory, '') + arrow +
-    mk('완제품 라인', M.fgLine, '설비: '+M.fgEquip) + arrow +
-    mk('공정순서', M.fgRoute, 'Capa '+M.fgCapa.toLocaleString()+'EA/주 · LT '+LT_FG+'주') + arrow +
-    mk('산출', M.fg, 'BOM: '+M.sfg+'×'+M.bomSfg+'/EA');
-
-  document.getElementById('route-desc-fg').textContent = `${M.factory} > ${M.fgLine}(${M.fgEquip}) 기준 생산 라우팅입니다.`;
-  document.getElementById('lt-note-fg').textContent =
-    `물류 리드타임 ${M.logiLtDays}일(${LT_LOGI}주) + 완제품 생산 리드타임 ${M.fgLtDays}일(${LT_FG}주)이 착수 시점 계산에 반영됩니다. 호라이즌 시작 이전으로 밀려나는 착수 물량은 W1에 긴급 반영되고 "리드타임 부족"으로 표시됩니다.`;
-  document.getElementById('lt-note-sfgrm').textContent =
-    `반제품 생산 리드타임 ${M.sfgLtDays}일(${LT_SFG}주), 원자재 조달 리드타임 ${M.rmLtDays}일(${LT_RM}주)이 각각의 착수/발주 시점 계산에 반영됩니다.`;
-}
-
-function renderDemandPlan(forecast, adj, demandPlan){
-  let html = weekHeaders();
-  html += '<tr><td>수요예측(입력)</td>' + forecast.map(v=>`<td>${v.toLocaleString()}</td>`).join('') + '</tr>';
-  html += '<tr><td>조정계수(%)</td>' + adj.map(v=>`<td>${Math.round(v*100)}</td>`).join('') + '</tr>';
-  html += '<tr><td><b>수요계획(EA)</b></td>' + demandPlan.map(v=>`<td><b>${v.toLocaleString()}</b></td>`).join('') + '</tr>';
-  document.getElementById('tbl-demandplan').innerHTML = html;
-}
-
-function renderSupplyPlan(demandPlan, supplyPlan, supplyGap, inv, M){
-  let html = weekHeaders();
-  html += '<tr><td>수요계획(EA)</td>' + demandPlan.map(v=>`<td>${v.toLocaleString()}</td>`).join('') + '</tr>';
-  html += '<tr><td>완제품 라인 Capa(EA)</td>' + demandPlan.map(()=>`<td>${M.fgCapa.toLocaleString()}</td>`).join('') + '</tr>';
-  html += '<tr><td><b>공급계획(EA)</b></td>' + supplyPlan.map(v=>`<td><b>${v.toLocaleString()}</b></td>`).join('') + '</tr>';
-  html += '<tr><td>Gap(부족)</td>' + supplyGap.map(v=>`<td style="color:${v>0?'var(--coral)':'var(--ink-dim)'}">${v>0? '-'+v.toLocaleString() : '0'}</td>`).join('') + '</tr>';
-  html += '<tr><td>기말재고(EA)</td>' + inv.map(v=>`<td>${v.toLocaleString()}</td>`).join('') + '</tr>';
-  document.getElementById('tbl-supplyplan').innerHTML = html;
-}
-
-function renderProductionPlan(M, planFG, utilFG, LT_FG, shipLateFlag){
-  let html = weekHeaders();
-  html += '<tr><td>총소요량(GR, 창고출고 필요시점)</td>' + planFG.GR.map((v,i)=>`<td style="color:${shipLateFlag[i]?'var(--coral)':'var(--ink-dim)'}">${v.toLocaleString()}${shipLateFlag[i]?' <span class="badge" style="color:var(--coral)">물류LT부족</span>':''}</td>`).join('') + '</tr>';
-  html += '<tr><td>순소요량(NR)</td>' + planFG.NR.map(v=>`<td>${v.toLocaleString()}</td>`).join('') + '</tr>';
-  html += '<tr><td><b>계획입고량(완성시점)</b></td>' + planFG.PORcpt.map(v=>`<td><b>${v.output.toLocaleString()}</b></td>`).join('') + '</tr>';
-  html += '<tr><td><b>계획착수량(생산개시, LT '+LT_FG+'주 오프셋)</b></td>' + planFG.release.map((v,i)=>`<td style="color:${planFG.capaFlag[i]?'var(--coral)':'var(--ink)'}"><b>${v.toLocaleString()}</b>${planFG.capaFlag[i]?' <span class="badge" style="color:var(--coral)">CAPA초과</span>':''}${planFG.lateFlag[i]?' <span class="badge" style="color:var(--amber)">긴급착수</span>':''}</td>`).join('') + '</tr>';
-  html += '<tr><td>라인 가동률(%)</td>' + utilFG.map(v=>`<td style="color:${v>100?'var(--coral)':'var(--ink-dim)'}">${v}%</td>`).join('') + '</tr>';
-  html += '<tr><td>기말 완제품재고(EA)</td>' + planFG.POH.map(v=>`<td style="color:${v<M.fgSafety?'var(--coral)':'var(--ink)'}">${v.toLocaleString()}</td>`).join('') + '</tr>';
-  document.getElementById('tbl-productionplan').innerHTML = html;
-}
-
-function renderMRP(M, planSFG, planRM, utilSFG, LT_SFG, LT_RM){
-  let html = weekHeaders();
-  html += `<tr><td colspan="${WEEKS+1}" style="text-align:left;color:var(--amber);font-family:var(--font-display);font-size:11px;border:none;padding-top:12px;">▸ ${M.sfg} (반제품, LT ${LT_SFG}주)</td></tr>`;
-  html += '<tr><td>총소요량(GR, 완제품 착수 기준)</td>' + planSFG.GR.map(v=>`<td>${v.toLocaleString()}</td>`).join('') + '</tr>';
-  html += '<tr><td>순소요량(NR)</td>' + planSFG.NR.map(v=>`<td>${v.toLocaleString()}</td>`).join('') + '</tr>';
-  html += '<tr><td><b>계획입고량</b></td>' + planSFG.PORcpt.map(v=>`<td><b>${v.output.toLocaleString()}</b></td>`).join('') + '</tr>';
-  html += '<tr><td><b>계획착수량(LT 오프셋)</b></td>' + planSFG.release.map((v,i)=>`<td style="color:${planSFG.capaFlag[i]?'var(--coral)':'var(--ink)'}"><b>${v.toLocaleString()}</b>${planSFG.capaFlag[i]?' <span class="badge" style="color:var(--coral)">CAPA초과</span>':''}${planSFG.lateFlag[i]?' <span class="badge" style="color:var(--amber)">긴급착수</span>':''}</td>`).join('') + '</tr>';
-  html += '<tr><td>라인 가동률(%)</td>' + utilSFG.map(v=>`<td style="color:${v>100?'var(--coral)':'var(--ink-dim)'}">${v}%</td>`).join('') + '</tr>';
-  html += '<tr><td>기말 반제품재고(EA)</td>' + planSFG.POH.map(v=>`<td>${v.toLocaleString()}</td>`).join('') + '</tr>';
-
-  html += `<tr><td colspan="${WEEKS+1}" style="text-align:left;color:var(--amber);font-family:var(--font-display);font-size:11px;border:none;padding-top:12px;">▸ ${M.rm} (원자재, LT ${LT_RM}주)</td></tr>`;
-  html += '<tr><td>총소요량(GR, 반제품 착수 기준)</td>' + planRM.GR.map(v=>`<td>${v.toLocaleString()}</td>`).join('') + '</tr>';
-  html += '<tr><td>순소요량(NR)</td>' + planRM.NR.map(v=>`<td>${v.toLocaleString()}</td>`).join('') + '</tr>';
-  html += '<tr><td><b>계획발주량(LT 오프셋)</b></td>' + planRM.release.map((v,i)=>`<td><b>${v.toLocaleString()}</b>${planRM.lateFlag[i]?' <span class="badge" style="color:var(--amber)">긴급발주</span>':''}</td>`).join('') + '</tr>';
-  html += '<tr><td>기말 원자재재고</td>' + planRM.POH.map(v=>`<td style="color:${v<0?'var(--coral)':'var(--ink)'}">${v.toLocaleString()}</td>`).join('') + '</tr>';
-  document.getElementById('tbl-mrp').innerHTML = html;
-}
-
-function renderReport(M, demandPlan, supplyPlan, planFG, planSFG, utilFG, utilSFG){
-  document.getElementById('sop-scope').textContent =
-    `${M.cust} × ${M.fg} 기준, ${WEEKS}주 플래닝 호라이즌 — 원자재→반제품→완제품 2단계 BOM, 리드타임 오프셋을 반영한 시계열 MRP 결과를 종합한 자동 생성 리포트입니다.`;
-
-  const totalDemand = demandPlan.reduce((a,b)=>a+b,0);
-  const totalSupply = supplyPlan.reduce((a,b)=>a+b,0);
-  const fillRate = totalDemand ? Math.round(totalSupply/totalDemand*1000)/10 : 0;
-  const capaWeeks = planFG.capaFlag.filter(Boolean).length + planSFG.capaFlag.filter(Boolean).length;
-  const lateWeeks = planFG.lateFlag.filter(Boolean).length + planSFG.lateFlag.filter(Boolean).length;
-  const minInv = Math.min(...planFG.POH);
-
-  const kpis = [
-    {label:'충족률(Fill Rate, ATP)', val: fillRate+'%', cls: fillRate>=98?'good':(fillRate<90?'risk':'')},
-    {label:'Capa 초과 발생(완제품+반제품)', val: capaWeeks+' 회', cls: capaWeeks>0?'risk':'good'},
-    {label:'리드타임 부족(긴급착수) 발생', val: lateWeeks+' 회', cls: lateWeeks>0?'risk':'good'},
-    {label:'최저 완제품 기말재고', val: minInv.toLocaleString()+' EA', cls: minInv<M.fgSafety? 'risk':'good'},
-  ];
-  document.getElementById('kpi-row').innerHTML = kpis.map(k=>
-    `<div class="kpi ${k.cls}"><div class="v">${k.val}</div><div class="l">${k.label}</div></div>`
-  ).join('');
-
-  const maxV = Math.max(...demandPlan, ...supplyPlan, 1);
-  document.getElementById('chart-gap').innerHTML = demandPlan.map((d,i)=>{
-    const sH = Math.max(2, supplyPlan[i]/maxV*110);
-    const dH = Math.max(2, d/maxV*110);
-    return `<div class="bargrp"><div style="position:relative;width:100%;height:100%;display:flex;align-items:flex-end;justify-content:center;">
-      <div class="bar" style="height:${sH}px;"></div>
-      <div class="bar" style="height:${dH}px;position:absolute;bottom:0;width:70%;background:transparent;border:1px dashed var(--amber);"></div>
-    </div><div class="barlabel">W${i+1}</div></div>`;
-  }).join('');
-
-  const maxInv = Math.max(...planFG.POH, M.fgSafety, 1);
-  document.getElementById('chart-inv').innerHTML = planFG.POH.map((v,i)=>{
-    const h = Math.max(2, Math.abs(v)/maxInv*110);
-    const below = v < M.fgSafety;
-    return `<div class="bargrp"><div class="bar" style="height:${h}px;background:${below?'var(--coral)':'var(--teal)'};"></div><div class="barlabel">W${i+1}</div></div>`;
-  }).join('');
-
-  const maxRel = Math.max(...planFG.release, ...planSFG.release, 1);
-  document.getElementById('chart-release').innerHTML = planFG.release.map((v,i)=>{
-    const h1 = Math.max(2, v/maxRel*110);
-    const h2 = Math.max(2, planSFG.release[i]/maxRel*110);
-    return `<div class="bargrp"><div style="display:flex;gap:4px;align-items:flex-end;height:100%;">
-      <div class="bar" style="width:16px;height:${h1}px;background:var(--amber);"></div>
-      <div class="bar" style="width:16px;height:${h2}px;background:var(--teal);"></div>
-    </div><div class="barlabel">W${i+1}</div></div>`;
-  }).join('');
-
-  let comments = [];
-  if(capaWeeks>0){
-    const fgW = planFG.capaFlag.map((f,i)=>f?('W'+(i+1)):null).filter(Boolean).join(', ');
-    const sfgW = planSFG.capaFlag.map((f,i)=>f?('W'+(i+1)):null).filter(Boolean).join(', ');
-    let s = `<b style="color:var(--coral)">Capa 초과:</b> `;
-    if(fgW) s += `완제품 라인 착수 ${fgW}주차`;
-    if(fgW && sfgW) s += ', ';
-    if(sfgW) s += `반제품 라인 착수 ${sfgW}주차`;
-    s += ` 물량이 주간 Capa를 초과합니다. 잔업/외주 또는 설비 증설을 검토하세요.`;
-    comments.push(s);
-  }
-  if(lateWeeks>0){
-    comments.push(`<b style="color:var(--amber)">리드타임 부족:</b> 일부 물량은 필요한 착수 시점이 플래닝 호라이즌 시작 이전이라, W1에 긴급 반영되었습니다. 이는 현재 리드타임 대비 호라이즌 시작 시점의 사전 재고/발주가 부족함을 의미합니다.`);
-  }
-  if(minInv < M.fgSafety){
-    comments.push(`<b style="color:var(--coral)">재고 위험:</b> 최저 완제품 기말재고(${minInv.toLocaleString()}EA)가 안전재고(${M.fgSafety.toLocaleString()}EA)를 하회합니다.`);
-  }
-  if(fillRate < 100){
-    comments.push(`<b>수요충족률(ATP) ${fillRate}%</b> — 총 수요 ${totalDemand.toLocaleString()}EA 중 ${totalSupply.toLocaleString()}EA만 즉시 공급 가능합니다.`);
-  }
-  if(comments.length===0){
-    comments.push(`<b style="color:var(--teal)">정상:</b> 전 구간 Capa·리드타임·재고 제약 없이 계획이 성립합니다.`);
-  }
-  const isRisk = !(comments.length===1 && comments[0].includes('정상'));
-  document.getElementById('risk-comment').innerHTML = comments.map(c=>`<p style="margin:0 0 10px;">${c}</p>`).join('') +
-    (isRisk ? `<span class="stamp">RISK DETECTED</span>` : `<span class="stamp safe">PLAN OK</span>`);
-
-  const totalProdInputFG = planFG.PORcpt.reduce((a,b)=>a+b.input,0);
-  const revenue = totalSupply * M.fgPrice;
-  const cogs = totalProdInputFG * M.fgCost;
-  const margin = revenue - cogs;
-  const marginPct = revenue ? Math.round(margin/revenue*1000)/10 : 0;
-  document.getElementById('tbl-pl').innerHTML = `
-    <tr><td>총 공급수량(ATP) 기준 매출 추정</td><td>${revenue.toLocaleString()} 원</td></tr>
-    <tr><td>총 완제품 계획입고 투입수량 기준 원가</td><td>${cogs.toLocaleString()} 원</td></tr>
-    <tr><td><b>추정 매출총이익</b></td><td><b style="color:${margin>=0?'var(--teal)':'var(--coral)'}">${margin.toLocaleString()} 원 (${marginPct}%)</b></td></tr>
-  `;
-}
-
-buildPipeline();
-buildForecastInputs();
-loadSample();
-showPanel(0);
-</script>
+<script src="js/planning-engine.js"></script>
+<script src="js/ui-controller.js"></script>
 </body>
 </html>

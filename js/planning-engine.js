@@ -12,11 +12,13 @@
  * 테이블/차트로 그리는 역할만 담당합니다.
  *
  * 계산 흐름:
- *   1) computeDemandPlan   : 수요예측 → 수요계획
- *   2) computeSupplyPlan   : 수요계획 → 공급계획(ATP)
- *   3) computeMRPCascade   : 완제품 → 반제품 → 원자재 2단계 MRP
- *                            (생산/조달 리드타임 오프셋 반영)
- *   4) computeReportMetrics: 위 결과를 종합한 S&OP 리포트 지표
+ *   1) computeDemandPlan      : 수요예측 → 수요계획
+ *   2) computeSupplyPlan      : 수요계획 → 공급계획(ATP)
+ *   3) computeDistributionPlan: 수요계획 → 물류센터 2개소 배분/재고 MRP
+ *                                → 완제품 총소요량(grFG) 산출
+ *   4) computeMRPCascade      : 완제품 → 반제품 → 원자재 2단계 MRP
+ *                                (생산/조달 리드타임 오프셋 반영)
+ *   5) computeReportMetrics   : 위 결과를 종합한 S&OP 리포트 지표
  * ============================================================
  */
 const PlanningEngine = (function () {
@@ -33,16 +35,19 @@ const PlanningEngine = (function () {
   /**
    * 표준 "시계열 MRP 레코드"(Time-Phased MRP Record) 전개.
    * 실제 APS/MRP 시스템의 넷팅(Netting) 로직과 동일한 방식입니다.
+   * 완제품/반제품/원자재뿐 아니라 물류센터(거점) 재고 전개에도 동일하게 재사용됩니다.
    *
    * 매 주(w)마다:
-   *   총소요량(GR)      : 이 품목이 그 주에 필요한 수량(상위 품목의 종속수요 또는 독립수요)
+   *   총소요량(GR)      : 이 품목/거점이 그 주에 필요한 수량(상위 품목의 종속수요 또는 독립수요)
    *   순소요량(NR)      : GR + 안전재고 - 기초가용재고(POH, 이전 주 기말재고) 를 넘는 부족분
    *   계획입고량(PORcpt): 순소요량을 로트사이즈 단위로 올림한, "그 주에 완성/입고되어야 하는 수량"
+   *                       (단, 이번 주에 이미 로트를 도는 경우 다음 주 잔여 소요가 로트사이즈 미만이면
+   *                        별도 생산을 피하기 위해 한 로트를 더 얹어 당겨 생산한다)
    *   기말재고(POH)     : 이전 재고 + 계획입고 - 총소요량
    *
    * 그리고 리드타임(lt, 주 단위)만큼 "계획착수량(release)"을 앞당깁니다.
    *   계획착수 시점 = 계획입고 시점(w) - 리드타임(lt)
-   * 즉, w주차에 완성되어야 하는 물량은 (w-lt)주차에 이미 착수(생산 시작/발주)되어 있어야 합니다.
+   * 즉, w주차에 완성/입고되어야 하는 물량은 (w-lt)주차에 이미 착수(생산 시작/발주/출하지시)되어 있어야 합니다.
    * 만약 그 착수 시점이 플래닝 호라이즌 시작(0주차) 이전이라면, 이미 리드타임을
    * 확보할 수 없는 상황이므로 0주차에 "긴급 착수"로 몰아넣고 lateFlag 로 표시합니다.
    *
@@ -50,9 +55,13 @@ const PlanningEngine = (function () {
    * @param {number[]} params.GR      - 주별 총소요량 배열 (길이 = weeks)
    * @param {number}   params.safety  - 안전재고 수량
    * @param {number}   params.begin   - 기초재고(플래닝 시작 시점의 재고)
-   * @param {number}   params.lot     - 로트사이즈(생산/발주 단위). 0 또는 미지정 시 1(로트 제약 없음)
+   * @param {number}   params.wip     - 재공품(이미 착수되어 호라이즌 시작 시점에 곧 입고될 물량). 미지정 시 0.
+   *                                    기초재고와 마찬가지로 0주차 순소요량 계산의 가용재고에 합산되어,
+   *                                    "호라이즌 시작 전에는 아무 생산도 진행 중이지 않았다"는 비현실적 가정으로
+   *                                    0주차 물량 전체가 긴급착수로 몰리는 것을 완화합니다.
+   * @param {number}   params.lot     - 로트사이즈(생산/발주/이동 단위). 0 또는 미지정 시 1(로트 제약 없음)
    * @param {number}   params.lt      - 리드타임(주 단위, ltWeeks()로 변환된 값)
-   * @param {?number}  params.capa    - 주간 가용 Capa(EA). null 이면 Capa 체크 생략(원자재 등)
+   * @param {?number}  params.capa    - 주간 가용 Capa(EA, 생산라인 또는 운송 Capa). null 이면 Capa 체크 생략(원자재 등)
    * @param {number}   params.yieldRate - 수율(0~1). 미지정 시 1(수율 손실 없음)
    * @param {number}   params.weeks   - 플래닝 호라이즌 주수
    *
@@ -61,16 +70,16 @@ const PlanningEngine = (function () {
    *   NR        : 주별 순소요량
    *   PORcpt    : 주별 계획입고 {input, output} — input=투입(원료소요/Capa 산정 기준), output=수율반영 산출량
    *   POH       : 주별 기말 가용재고(Projected On Hand)
-   *   release   : 주별 계획착수량(리드타임 오프셋 반영, 하위 품목의 종속수요로 전달됨)
+   *   release   : 주별 계획착수량(리드타임 오프셋 반영, 하위 품목의 종속수요 또는 상위 단계의 GR로 전달됨)
    *   lateFlag  : 그 주 계획입고량 중, 리드타임을 확보하지 못해 긴급 착수된 경우 true
-   *   capaFlag  : 그 주 착수(release) 물량이 라인 Capa를 초과하면 true (capa가 null이면 전부 false)
+   *   capaFlag  : 그 주 착수(release) 물량이 Capa를 초과하면 true (capa가 null이면 전부 false)
    * }
    */
-  function planItem({ GR, safety, begin, lot, lt, capa, yieldRate, weeks }) {
+  function planItem({ GR, safety, begin, wip, lot, lt, capa, yieldRate, weeks }) {
     const rate = yieldRate || 1;
     const lotSize = lot || 1;
 
-    let poh = begin;
+    let poh = begin + (wip || 0);
     const NR = [];
     const PORcpt = [];
     const POH = [];
@@ -84,7 +93,18 @@ const PlanningEngine = (function () {
       const inputNeeded = rate < 1 ? nr / rate : nr;
 
       // 3) 로트사이즈 단위로 올림 → 계획입고(투입 기준)
-      const rcptInput = nr > 0 ? Math.ceil(inputNeeded / lotSize) * lotSize : 0;
+      let rcptInput = nr > 0 ? Math.ceil(inputNeeded / lotSize) * lotSize : 0;
+
+      // 3-1) 이미 이번 주에 생산(셋업)한다면, 다음 주 잔여 소요가 로트사이즈 미만일 때
+      //      별도로 한 번 더 생산하지 않도록 이번 로트에 한 로트 더 얹어 당겨 생산한다.
+      if (rcptInput > 0 && w + 1 < weeks) {
+        const outputPreview = Math.round(rcptInput * rate);
+        const pohPreview = poh + outputPreview - GR[w];
+        const nrNext = Math.max(0, GR[w + 1] + safety - pohPreview);
+        if (nrNext > 0 && nrNext < lotSize) {
+          rcptInput += lotSize;
+        }
+      }
 
       // 4) 수율을 반영한 실제 산출량(양품 기준) — 재고에는 이 수량이 반영됨
       const rcptOutput = Math.round(rcptInput * rate);
@@ -133,7 +153,7 @@ const PlanningEngine = (function () {
    * STEP 2. 공급계획 (ATP, Available-To-Promise)
    * 리드타임을 고려하지 않고, "지금 당장 가용한 재고 + 이번 주 Capa"만으로
    * 얼마나 공급 가능한지 판단하는 단순 모델입니다.
-   * (실제 리드타임 반영 확정 공급 능력은 STEP 3~4의 MRP 결과를 봐야 합니다.)
+   * (실제 리드타임 반영 확정 공급 능력은 STEP 3~5의 MRP 결과를 봐야 합니다.)
    */
   function computeSupplyPlan(demandPlan, fgStock0, fgCapa, weeks) {
     let runStock = fgStock0;
@@ -152,61 +172,77 @@ const PlanningEngine = (function () {
   }
 
   /**
-   * STEP 3~4. 완제품 → 반제품 → 원자재 2단계 MRP 캐스케이드.
+   * STEP 3. 물류센터(거점) 2개소 배분/재고 MRP.
+   * 고객수요 → 거점1/거점2로 배분(거점1은 입력비율, 거점2는 나머지) → 각 거점을
+   * planItem()으로 전개(거점 재고·안전재고·이동Capa·이동리드타임 반영) → 완제품
+   * 생산계획으로 넘길 총소요량(grFG)은 두 거점의 "공장 출하지시(release)" 합입니다.
+   *
+   * @param {Object} M - 기준정보(마스터데이터) 객체
+   * @param {number[]} demandPlan - STEP1에서 계산된 주별 수요계획
+   * @param {number} weeks - 플래닝 호라이즌 주수
+   * @returns {Object} { planDC1, planDC2, LT_DC1, LT_DC2, grFG }
+   */
+  function computeDistributionPlan(M, demandPlan, weeks) {
+    const LT_DC1 = ltWeeks(M.dc1LtDays);
+    const LT_DC2 = ltWeeks(M.dc2LtDays);
+
+    // 거점1은 입력비율, 거점2는 나머지(총수요와 항상 일치, 라운딩 누락 방지)
+    const dcDemand1 = demandPlan.map((v) => Math.round(v * M.dc1Ratio / 100));
+    const dcDemand2 = demandPlan.map((v, i) => v - dcDemand1[i]);
+
+    const planDC1 = planItem({
+      GR: dcDemand1, safety: M.dc1Safety, begin: M.dc1Stock0, lot: 1,
+      lt: LT_DC1, capa: M.dc1Capa, weeks,
+    });
+    const planDC2 = planItem({
+      GR: dcDemand2, safety: M.dc2Safety, begin: M.dc2Stock0, lot: 1,
+      lt: LT_DC2, capa: M.dc2Capa, weeks,
+    });
+
+    // 완제품 총소요량(GR_FG) = 두 거점의 공장 출하지시(release) 합
+    const grFG = planDC1.release.map((v, i) => v + planDC2.release[i]);
+
+    return { planDC1, planDC2, LT_DC1, LT_DC2, grFG };
+  }
+
+  /**
+   * STEP 4. 완제품 → 반제품 → 원자재 2단계 MRP 캐스케이드.
    * 리드타임 오프셋이 실제 "주차 이동"으로 반영되는 핵심 로직입니다.
    *
    * 전개 순서:
-   *  ① 고객 수요(demandPlan)를 물류 리드타임만큼 앞당겨
-   *     "완제품 창고출고 필요 시점(GR_FG)"으로 환산
-   *  ② 완제품 MRP 전개 → 계획착수량(release) 산출
-   *  ③ 완제품 계획착수량 × BOM비율 = 반제품 총소요량(GR_SFG)
+   *  ① 완제품 총소요량(grFG, 물류계획 단계에서 산출된 거점 출하지시 합)으로 MRP 전개
+   *     → 계획착수량(release) 산출
+   *  ② 완제품 계획착수량 × BOM비율 = 반제품 총소요량(GR_SFG)
    *     (완제품이 "착수"하는 시점에 반제품이 실제로 소비되므로,
    *      반제품 종속수요는 완제품의 need 시점이 아니라 release 시점에 발생합니다)
-   *  ④ 반제품 MRP 전개 → 계획착수량(release) 산출
-   *  ⑤ 반제품 계획착수량 × BOM비율 = 원자재 총소요량(GR_RM)
-   *  ⑥ 원자재 MRP 전개(Capa 개념 없음, 조달 리드타임만 적용)
+   *  ③ 반제품 MRP 전개 → 계획착수량(release) 산출
+   *  ④ 반제품 계획착수량 × BOM비율 = 원자재 총소요량(GR_RM)
+   *  ⑤ 원자재 MRP 전개(Capa 개념 없음, 조달 리드타임만 적용)
    *
-   * @param {Object} M - 기준정보(마스터데이터) 객체. ui-controller.js 의
-   *                     gatherMasterData() 가 화면 입력값을 모아 만들어 전달합니다.
-   * @param {number[]} demandPlan - STEP1에서 계산된 주별 수요계획
+   * @param {Object} M - 기준정보(마스터데이터) 객체
+   * @param {number[]} grFG - 완제품 총소요량(computeDistributionPlan().grFG)
    * @param {number} weeks - 플래닝 호라이즌 주수
-   * @returns {Object} { planFG, planSFG, planRM, utilFG, utilSFG,
-   *                      LT_FG, LT_SFG, LT_RM, LT_LOGI, shipLateFlag }
+   * @returns {Object} { planFG, planSFG, planRM, utilFG, utilSFG, LT_FG, LT_SFG, LT_RM }
    */
-  function computeMRPCascade(M, demandPlan, weeks) {
-    // 리드타임(일) → 리드타임(주) 오프셋으로 변환
+  function computeMRPCascade(M, grFG, weeks) {
     const LT_FG = ltWeeks(M.fgLtDays);
     const LT_SFG = ltWeeks(M.sfgLtDays);
     const LT_RM = ltWeeks(M.rmLtDays);
-    const LT_LOGI = ltWeeks(M.logiLtDays);
 
-    // ① 물류 리드타임만큼 앞당긴 완제품 총소요량(GR_FG)
-    const grFG = new Array(weeks).fill(0);
-    const shipLateFlag = new Array(weeks).fill(false);
-    for (let w = 0; w < weeks; w++) {
-      const needWeek = w - LT_LOGI;
-      if (needWeek >= 0) {
-        grFG[needWeek] += demandPlan[w];
-      } else {
-        grFG[0] += demandPlan[w];
-        shipLateFlag[0] = true;
-      }
-    }
-
-    // ② 완제품 MRP 전개
+    // ① 완제품 MRP 전개
     const planFG = planItem({
-      GR: grFG, safety: M.fgSafety, begin: M.fgStock0, lot: M.fgLot,
+      GR: grFG, safety: M.fgSafety, begin: M.fgStock0, wip: M.fgWip, lot: M.fgLot,
       lt: LT_FG, capa: M.fgCapa, yieldRate: M.fgYield, weeks,
     });
 
-    // ③④ 반제품 총소요량 = 완제품 계획착수량 × BOM비율 → 반제품 MRP 전개
+    // ②③ 반제품 총소요량 = 완제품 계획착수량 × BOM비율 → 반제품 MRP 전개
     const grSFG = planFG.release.map((v) => v * M.bomSfg);
     const planSFG = planItem({
       GR: grSFG, safety: M.sfgSafety, begin: M.sfgStock0, lot: M.sfgLot,
-      lt: LT_SFG, capa: M.sfgCapa, weeks,
+      lt: LT_SFG, capa: M.sfgCapa, yieldRate: M.sfgYield, weeks,
     });
 
-    // ⑤⑥ 원자재 총소요량 = 반제품 계획착수량 × BOM비율 → 원자재 MRP 전개(Capa 없음)
+    // ④⑤ 원자재 총소요량 = 반제품 계획착수량 × BOM비율 → 원자재 MRP 전개(Capa 없음)
     const grRM = planSFG.release.map((v) => v * M.bomRm);
     const planRM = planItem({
       GR: grRM, safety: 0, begin: M.rmStock0, lot: 1, lt: LT_RM, capa: null, weeks,
@@ -220,7 +256,7 @@ const PlanningEngine = (function () {
       M.sfgHours > 0 ? Math.round((v * M.sfgTime) / 60 / M.sfgHours * 1000) / 10 : 0
     );
 
-    return { planFG, planSFG, planRM, utilFG, utilSFG, LT_FG, LT_SFG, LT_RM, LT_LOGI, shipLateFlag };
+    return { planFG, planSFG, planRM, utilFG, utilSFG, LT_FG, LT_SFG, LT_RM };
   }
 
   /**
@@ -228,12 +264,13 @@ const PlanningEngine = (function () {
    * 화면에 뿌릴 "완성 문장"은 만들지 않고, 판단에 필요한 숫자·불리언만 반환합니다.
    * (문구 조립은 ui-controller.js 쪽 책임)
    */
-  function computeReportMetrics(M, demandPlan, supplyPlan, planFG, planSFG) {
+  function computeReportMetrics(M, demandPlan, supplyPlan, planFG, planSFG, planDC1, planDC2) {
     const totalDemand = demandPlan.reduce((a, b) => a + b, 0);
     const totalSupply = supplyPlan.reduce((a, b) => a + b, 0);
     const fillRate = totalDemand ? Math.round((totalSupply / totalDemand) * 1000) / 10 : 0;
 
     const capaWeeks = planFG.capaFlag.filter(Boolean).length + planSFG.capaFlag.filter(Boolean).length;
+    const dcCapaWeeks = planDC1.capaFlag.filter(Boolean).length + planDC2.capaFlag.filter(Boolean).length;
     const lateWeeks = planFG.lateFlag.filter(Boolean).length + planSFG.lateFlag.filter(Boolean).length;
     const minInv = Math.min(...planFG.POH);
 
@@ -246,7 +283,7 @@ const PlanningEngine = (function () {
 
     return {
       totalDemand, totalSupply, fillRate,
-      capaWeeks, lateWeeks, minInv,
+      capaWeeks, dcCapaWeeks, lateWeeks, minInv,
       revenue, cogs, margin, marginPct,
     };
   }
@@ -257,6 +294,7 @@ const PlanningEngine = (function () {
     planItem,
     computeDemandPlan,
     computeSupplyPlan,
+    computeDistributionPlan,
     computeMRPCascade,
     computeReportMetrics,
   };
